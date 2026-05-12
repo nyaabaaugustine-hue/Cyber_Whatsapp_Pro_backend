@@ -6,14 +6,24 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateLicenseKey } from "@/lib/keyGenerator";
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 function isAuthorized(request) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "");
   return token === process.env.ADMIN_SECRET_TOKEN;
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
 export async function POST(request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: CORS });
   }
 
   try {
@@ -29,7 +39,7 @@ export async function POST(request) {
     if (quantity < 1 || quantity > 50) {
       return NextResponse.json(
         { error: "Quantity must be between 1 and 50." },
-        { status: 400 }
+        { status: 400, headers: CORS }
       );
     }
 
@@ -74,9 +84,9 @@ export async function POST(request) {
       success: true,
       generated: keys.length,
       keys,
-    });
+    }, { headers: CORS });
   } catch (err) {
     console.error("[admin/generate-key] Error:", err);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+    return NextResponse.json({ error: "Server error." }, { status: 500, headers: CORS });
   }
 }
