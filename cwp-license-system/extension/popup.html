@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cyber WhatsApp Pro</title>
+  <link rel="stylesheet" href="css/popup.css" />
+</head>
+<body>
+
+  <div class="popup-wrap">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <img src="logo/pro-small.png" alt="CWP Logo" class="brand-logo" />
+          <div class="brand-text">
+            <span class="brand-name">Cyber WhatsApp Pro</span>
+            <span class="brand-sub">Premium Edition</span>
+          </div>
+        </div>
+        <div class="plan-badge" id="planBadge">FREE</div>
+      </div>
+    </header>
+
+    <!-- Status Card -->
+    <section class="status-card" id="statusCard">
+      <div class="status-icon" id="statusIcon">🔒</div>
+      <div class="status-info">
+        <p class="status-label">Current Plan</p>
+        <p class="status-plan" id="statusPlan">Free Plan</p>
+        <p class="status-detail" id="statusDetail">Enter your key to unlock premium</p>
+      </div>
+    </section>
+
+    <!-- Activation Form (shown when not premium) -->
+    <section class="activation-section" id="activationSection">
+      <label class="input-label" for="licenseInput">Activation Key</label>
+      <div class="input-row">
+        <input
+          type="text"
+          id="licenseInput"
+          class="license-input"
+          placeholder="CWP-PRO-2026-XXXXX"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="24"
+        />
+      </div>
+      <button class="activate-btn" id="activateBtn">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-text">Activate Premium</span>
+      </button>
+      <div class="message-box" id="messageBox" role="alert"></div>
+      <p class="help-text">
+        Pay via Mobile Money &amp; WhatsApp us for your key:<br/>
+        <a class="wa-link" href="https://wa.me/233541988383" target="_blank">+233 54 198 8383</a>
+      </p>
+    </section>
+
+    <!-- Premium Active Panel (shown when premium) -->
+    <section class="premium-section hidden" id="premiumSection">
+      <div class="premium-features">
+        <div class="feature-item active"><span>✓</span> Bulk Messaging</div>
+        <div class="feature-item active"><span>✓</span> Auto Reply</div>
+        <div class="feature-item active"><span>✓</span> Message Scheduler</div>
+        <div class="feature-item active"><span>✓</span> Contact Extractor</div>
+        <div class="feature-item active"><span>✓</span> Anti-Delete</div>
+        <div class="feature-item active"><span>✓</span> Group Tools</div>
+      </div>
+      <button class="deactivate-btn" id="deactivateBtn">Deactivate License</button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Support: <a href="https://wa.me/233541988383" target="_blank">+233 54 198 8383</a></span>
+    </footer>
+
+  </div>
+
+  <script src="js/popup.js" type="module"></script>
+</body>
+</html>
