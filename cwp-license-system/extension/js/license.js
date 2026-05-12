@@ -157,4 +157,6 @@ export async function recheckLicense() {
 
 // ── Internal helpers ─────────────────────────────────────────
 
-async function scheduleRecheck() 
+async function scheduleRecheck() {
+  await chrome.alarms.create(CHECK_ALARM, { periodInMinutes: 360 });
+}

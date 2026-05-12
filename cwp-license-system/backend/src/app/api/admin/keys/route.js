@@ -60,13 +60,9 @@ export async function PATCH(request) {
   }
 
   try {
-    const body = await request.json().catch(() => null);
+    const body = await request.json().catch(() => ({}));
 
-    if (!body) {
-      return NextResponse.json({ error: "Invalid or missing JSON body." }, { status: 400, headers: CORS });
-    }
-
-    const { licenseKey, active, expiryDate } = body;
+    const { licenseKey, active, expiryDate, resetDevice } = body;
 
     if (!licenseKey) {
       return NextResponse.json({ error: "licenseKey required." }, { status: 400, headers: CORS });
@@ -86,6 +82,11 @@ export async function PATCH(request) {
       }
     }
 
+    // Allow clearing device binding
+    if (resetDevice === true) {
+      data.device_id = null;
+    }
+
     const updated = await prisma.license.update({
       where: { license_key: licenseKey },
       data,
@@ -97,6 +98,34 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "License key not found." }, { status: 404, headers: CORS });
     }
     console.error("[admin/keys PATCH] Error:", err);
+    return NextResponse.json({ error: "Server error." }, { status: 500, headers: CORS });
+  }
+}
+
+// DELETE — Remove a license key entirely
+export async function DELETE(request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: CORS });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const licenseKey = searchParams.get("licenseKey");
+
+    if (!licenseKey) {
+      return NextResponse.json({ error: "licenseKey parameter is required." }, { status: 400, headers: CORS });
+    }
+
+    await prisma.license.delete({
+      where: { license_key: licenseKey },
+    });
+
+    return NextResponse.json({ success: true, message: "License deleted successfully." }, { headers: CORS });
+  } catch (err) {
+    if (err.code === "P2025") {
+      return NextResponse.json({ error: "License key not found." }, { status: 404, headers: CORS });
+    }
+    console.error("[admin/keys DELETE] Error:", err);
     return NextResponse.json({ error: "Server error." }, { status: 500, headers: CORS });
   }
 }

@@ -21,9 +21,9 @@ export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
 
-    if (!body || !body.licenseKey) {
+    if (!body || !body.licenseKey || !body.deviceId) {
       return NextResponse.json(
-        { valid: false, error: "License key is required." },
+        { valid: false, error: "License key and device identity are required." },
         { status: 400, headers: CORS_HEADERS }
       );
     }
