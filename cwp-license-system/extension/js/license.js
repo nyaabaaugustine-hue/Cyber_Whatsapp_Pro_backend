@@ -28,7 +28,7 @@ export async function activateLicense(licenseKey) {
     });
 
     if (!response.ok) {
-      return { success: false, error: "Server unreachable. Check your internet." };
+      return { success: false, error: `Server Error (${response.status}). Please check backend deployment logs.` };
     }
 
     const data = await response.json();
@@ -135,8 +135,4 @@ export async function recheckLicense() {
 
 // ── Internal helpers ─────────────────────────────────────────
 
-async function scheduleRecheck() {
-  await chrome.alarms.clear(CHECK_ALARM);
-  // Re-check every 6 hours
-  chrome.alarms.create(CHECK_ALARM, { periodInMinutes: 360 });
-}
+async function scheduleRecheck() 
