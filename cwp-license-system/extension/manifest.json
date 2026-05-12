@@ -12,7 +12,7 @@
 
   "host_permissions": [
     "https://web.whatsapp.com/*",
-    "https://cwp-license-backend.vercel.app/*"
+    "https://cyber-whatsapp-pro-backend.vercel.app/*"
   ],
 
   "background": {
