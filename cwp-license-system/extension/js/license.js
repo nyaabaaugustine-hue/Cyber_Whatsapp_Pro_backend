@@ -150,8 +150,9 @@ export async function recheckLicense() {
         },
       });
     }
-  } catch {
+  } catch (err) {
     // Silently fail — keep existing premium status if server unreachable
+    console.warn("[CWP License] Background recheck failed (Network/Server Error):", err);
   }
 }
 

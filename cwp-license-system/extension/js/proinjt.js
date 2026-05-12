@@ -12,7 +12,7 @@ async function isPremiumActive() {
   return new Promise((resolve) => {
     chrome.storage.local.get("cwp_license", (result) => {
       const license = result.cwp_license;
-      if (!license || !license.premium) {
+      if (!license || license.premium !== true) {
         resolve(false);
         return;
       }
