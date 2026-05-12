@@ -1,24 +1,29 @@
 import crypto from 'crypto'
 
-export function generateLicenseKey(plan = "PREM") {
-  const segments = 4
-  const segmentLength = 5
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
-  const prefix = plan.toUpperCase().substring(0, 4);
-  const key = Array.from({ length: segments - 1 }, () =>
-    Array.from({ length: segmentLength }, () =>
-      chars[Math.floor(Math.random() * chars.length)]
+/**
+ * Generates a license key in strict XXXXX-XXXXX-XXXXX-XXXXX format.
+ * All four segments are exactly 5 alphanumeric characters (uppercase).
+ * Example: AB12C-XY34Z-MN56P-QR78S
+ */
+export function generateLicenseKey() {
+  const segments = Array.from({ length: 4 }, () =>
+    Array.from({ length: 5 }, () =>
+      CHARS[Math.floor(Math.random() * CHARS.length)]
     ).join('')
-  ).join('-')
-  return `${prefix}-${key}`;
+  )
+  return segments.join('-')
 }
 
 export function hashKey(key) {
   return crypto.createHash('sha256').update(key).digest('hex')
 }
 
+/**
+ * Validates key format — strictly 5-5-5-5 alphanumeric uppercase.
+ * Matches what the Chrome extension popup formatter produces.
+ */
 export function isValidKeyFormat(key) {
-  // Allows prefixes of 3-5 chars, followed by segments of 4-5 chars
-  return /^[A-Z0-9]{3,5}(-[A-Z0-9]{4,5}){2,4}$/.test(key)
+  return /^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(key)
 }

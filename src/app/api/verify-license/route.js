@@ -6,11 +6,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidKeyFormat } from "@/lib/keyGenerator";
 
-// CORS headers — lock to your extension ID in production
+// CORS headers
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Extension-ID",
+  // FIX Bug 1: Added Authorization and X-Extension-ID to match all callers
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Extension-ID",
 };
 
 export async function OPTIONS() {
@@ -21,14 +22,17 @@ export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
 
-    if (!body || !body.licenseKey || !body.deviceId) {
+    // FIX Bug 2 & 3: Only require licenseKey; deviceId is optional (empty string is allowed)
+    if (!body || !body.licenseKey) {
       return NextResponse.json(
-        { valid: false, error: "License key and device identity are required." },
+        { valid: false, error: "License key is required." },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
     const { licenseKey, deviceId } = body;
+    // Normalise deviceId — treat missing/empty as null so device binding works correctly
+    const normalizedDeviceId = deviceId && deviceId.trim() ? deviceId.trim() : null;
 
     // 1. Basic format check (fast, no DB hit)
     if (!isValidKeyFormat(licenseKey.trim().toUpperCase())) {
@@ -57,8 +61,8 @@ export async function POST(request) {
       );
     }
 
-    // 2.5 Device Binding Check
-    if (license.device_id && deviceId && license.device_id !== deviceId) {
+    // 2.5 Device Binding Check — only enforce if BOTH sides have a device ID
+    if (license.device_id && normalizedDeviceId && license.device_id !== normalizedDeviceId) {
       return NextResponse.json(
         { valid: false, error: "License is already bound to another device." },
         { status: 200, headers: CORS_HEADERS }
@@ -78,13 +82,13 @@ export async function POST(request) {
       );
     }
 
-    // 4. Mark activation timestamp on first use
-    if (!license.activated_at || !license.device_id) {
+    // 4. Mark activation timestamp on first use (only when we have a real deviceId)
+    if ((!license.activated_at || !license.device_id) && normalizedDeviceId) {
       await prisma.license.update({
         where: { id: license.id },
-        data: { 
+        data: {
           activated_at: license.activated_at || new Date(),
-          device_id: license.device_id || deviceId
+          device_id: license.device_id || normalizedDeviceId,
         },
       });
     }

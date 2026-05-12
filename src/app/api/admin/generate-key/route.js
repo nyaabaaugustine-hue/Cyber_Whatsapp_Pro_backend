@@ -50,7 +50,7 @@ export async function POST(request) {
 
       // Ensure uniqueness (retry on collision, extremely rare)
       do {
-        key = generateLicenseKey(plan);
+        key = generateLicenseKey(); // no args — always 5-5-5-5 format
         attempts++;
       } while (
         attempts < 10 &&
