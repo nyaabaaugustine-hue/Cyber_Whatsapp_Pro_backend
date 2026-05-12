@@ -2,11 +2,11 @@
 // Core license verification logic for Cyber WhatsApp Pro
 // Handles storage, API calls, and premium status checks
 
-const LICENSE_API_URL = "https://cyber-whatsapp-pro-backend.vercel.app/api/verify-license";
+const LICENSE_API_URL = "https://cyberwhatsapp-back.vercel.app/api/verify-license";
 
 // Keys used in chrome.storage.local
 const STORAGE_KEY  = "cwp_license";
-const CHECK_ALARM  = "cwp_license_recheck";
+const CHECK_ALARM  = "cwp_license_recheck";  
 
 // ── Public API ───────────────────────────────────────────────
 
