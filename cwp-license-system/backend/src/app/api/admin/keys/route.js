@@ -60,7 +60,13 @@ export async function PATCH(request) {
   }
 
   try {
-    const { licenseKey, active, expiryDate } = await request.json();
+    const body = await request.json().catch(() => null);
+
+    if (!body) {
+      return NextResponse.json({ error: "Invalid or missing JSON body." }, { status: 400, headers: CORS });
+    }
+
+    const { licenseKey, active, expiryDate } = body;
 
     if (!licenseKey) {
       return NextResponse.json({ error: "licenseKey required." }, { status: 400, headers: CORS });
@@ -68,8 +74,17 @@ export async function PATCH(request) {
 
     const data = {};
     if (typeof active === "boolean") data.active = active;
-    if (expiryDate !== undefined)
-      data.expiry_date = expiryDate ? new Date(expiryDate) : null;
+    if (expiryDate !== undefined) {
+      if (expiryDate) {
+        const parsedDate = new Date(expiryDate);
+        if (isNaN(parsedDate.getTime())) {
+          return NextResponse.json({ error: "Invalid date format for expiryDate." }, { status: 400, headers: CORS });
+        }
+        data.expiry_date = parsedDate;
+      } else {
+        data.expiry_date = null;
+      }
+    }
 
     const updated = await prisma.license.update({
       where: { license_key: licenseKey },
