@@ -60,13 +60,13 @@ export async function PATCH(request) {
   }
 
   try {
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => null);
 
-    const { licenseKey, active, expiryDate, resetDevice } = body;
-
-    if (!licenseKey) {
+    if (!body || !body.licenseKey) {
       return NextResponse.json({ error: "licenseKey required." }, { status: 400, headers: CORS });
     }
+
+    const { licenseKey, active, expiryDate, resetDevice } = body;
 
     const data = {};
     if (typeof active === "boolean") data.active = active;

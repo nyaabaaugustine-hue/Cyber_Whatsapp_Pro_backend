@@ -72,7 +72,7 @@ export async function activateLicense(licenseKey) {
     }
   } catch (err) {
     console.error("[CWP License] Network error:", err);
-    return { success: false, error: "Could not connect to license server." };
+    return { success: false, error: "❌ Server unreachable. Check your internet or try again." };
   }
 }
 

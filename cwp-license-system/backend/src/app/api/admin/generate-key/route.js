@@ -13,8 +13,8 @@ const CORS = {
 };
 
 function isAuthorized(request) {
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  return token === process.env.ADMIN_SECRET_TOKEN;
+  const token = request.headers.get("Authorization")?.replace("Bearer ", "").trim();
+  return token && token === process.env.ADMIN_SECRET_TOKEN;
 }
 
 export async function OPTIONS() {
@@ -31,9 +31,9 @@ export async function POST(request) {
 
     const {
       email = null,
-      plan = "premium",       // "premium" | "pro" | "lifetime"
-      durationDays = 365,     // null = lifetime
-      quantity = 1,           // generate multiple keys at once
+      plan = "premium",   // "premium" | "pro" | "lifetime"
+      durationDays = 365, // null = lifetime
+      quantity = 1,       // generate multiple keys at once
     } = body;
 
     if (quantity < 1 || quantity > 50) {
@@ -43,24 +43,30 @@ export async function POST(request) {
       );
     }
 
+    const isLifetime = plan === "lifetime" || durationDays === null;
+
     const keys = [];
     for (let i = 0; i < quantity; i++) {
       let key;
       let attempts = 0;
 
-      // Ensure uniqueness (retry on collision, extremely rare)
+      // Ensure uniqueness (retry on collision — extremely rare)
       do {
         key = generateLicenseKey(plan);
         attempts++;
+        if (attempts > 10) {
+          return NextResponse.json(
+            { error: "Could not generate a unique key. Try again." },
+            { status: 500, headers: CORS }
+          );
+        }
       } while (
-        attempts < 10 &&
-        (await prisma.license.findUnique({ where: { license_key: key } }))
+        await prisma.license.findUnique({ where: { license_key: key } })
       );
 
-      const expiryDate =
-        plan === "lifetime" || durationDays === null
-          ? null
-          : new Date(Date.now() + durationDays * 86_400_000);
+      const expiryDate = isLifetime
+        ? null
+        : new Date(Date.now() + durationDays * 86_400_000);
 
       const created = await prisma.license.create({
         data: {
@@ -80,11 +86,10 @@ export async function POST(request) {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      generated: keys.length,
-      keys,
-    }, { headers: CORS });
+    return NextResponse.json(
+      { success: true, generated: keys.length, keys },
+      { headers: CORS }
+    );
   } catch (err) {
     console.error("[admin/generate-key] Error:", err);
     return NextResponse.json({ error: "Server error." }, { status: 500, headers: CORS });

@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidKeyFormat } from "@/lib/keyGenerator";
 
-// CORS headers — lock to your extension ID in production
+// CORS headers — allow all origins so Chrome extension can reach the API
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -19,7 +19,15 @@ export async function OPTIONS() {
 
 export async function POST(request) {
   try {
-    const body = await request.json().catch(() => null);
+    let body = null;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { valid: false, error: "Invalid JSON body." },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
 
     if (!body || !body.licenseKey) {
       return NextResponse.json(
@@ -28,10 +36,10 @@ export async function POST(request) {
       );
     }
 
-    const { licenseKey } = body;
+    const licenseKey = body.licenseKey.trim().toUpperCase();
 
     // 1. Basic format check (fast, no DB hit)
-    if (!isValidKeyFormat(licenseKey.trim().toUpperCase())) {
+    if (!isValidKeyFormat(licenseKey)) {
       return NextResponse.json(
         { valid: false, error: "Invalid key format." },
         { status: 200, headers: CORS_HEADERS }
@@ -40,7 +48,7 @@ export async function POST(request) {
 
     // 2. Look up in Neon PostgreSQL via Prisma
     const license = await prisma.license.findUnique({
-      where: { license_key: licenseKey.trim().toUpperCase() },
+      where: { license_key: licenseKey },
     });
 
     if (!license) {
