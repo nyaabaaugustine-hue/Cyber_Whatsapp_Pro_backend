@@ -28,7 +28,7 @@ export async function POST(request) {
       );
     }
 
-    const { licenseKey } = body;
+    const { licenseKey, deviceId } = body;
 
     // 1. Basic format check (fast, no DB hit)
     if (!isValidKeyFormat(licenseKey.trim().toUpperCase())) {
@@ -57,6 +57,14 @@ export async function POST(request) {
       );
     }
 
+    // 2.5 Device Binding Check
+    if (license.device_id && deviceId && license.device_id !== deviceId) {
+      return NextResponse.json(
+        { valid: false, error: "License is already bound to another device." },
+        { status: 200, headers: CORS_HEADERS }
+      );
+    }
+
     // 3. Check expiry (null = lifetime)
     if (license.expiry_date && new Date(license.expiry_date) < new Date()) {
       // Auto-deactivate expired keys
@@ -71,10 +79,13 @@ export async function POST(request) {
     }
 
     // 4. Mark activation timestamp on first use
-    if (!license.activated_at) {
+    if (!license.activated_at || !license.device_id) {
       await prisma.license.update({
         where: { id: license.id },
-        data: { activated_at: new Date() },
+        data: { 
+          activated_at: license.activated_at || new Date(),
+          device_id: license.device_id || deviceId
+        },
       });
     }
 

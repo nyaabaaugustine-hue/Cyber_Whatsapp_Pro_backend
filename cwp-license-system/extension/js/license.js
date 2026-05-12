@@ -11,6 +11,18 @@ const CHECK_ALARM  = "cwp_license_recheck";
 // ── Public API ───────────────────────────────────────────────
 
 /**
+ * Generates or retrieves a unique device ID for this installation.
+ */
+async function getDeviceId() {
+  const result = await chrome.storage.local.get("cwp_device_id");
+  if (result.cwp_device_id) return result.cwp_device_id;
+
+  const newId = crypto.randomUUID();
+  await chrome.storage.local.set({ "cwp_device_id": newId });
+  return newId;
+}
+
+/**
  * Verify a license key against the backend API.
  * Saves result to chrome.storage.local on success.
  * @returns {{ success: boolean, plan?: string, expiry?: string, error?: string }}
@@ -20,11 +32,16 @@ export async function activateLicense(licenseKey) {
     return { success: false, error: "Please enter a valid activation key." };
   }
 
+  const deviceId = await getDeviceId();
+
   try {
     const response = await fetch(LICENSE_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ licenseKey: licenseKey.trim().toUpperCase() }),
+      body: JSON.stringify({ 
+        licenseKey: licenseKey.trim().toUpperCase(),
+        deviceId: deviceId
+      }),
     });
 
     if (!response.ok) {
@@ -102,11 +119,16 @@ export async function recheckLicense() {
   const license = await getLicense();
   if (!license?.key) return; // Nothing to recheck
 
+  const deviceId = await getDeviceId();
+
   try {
     const response = await fetch(LICENSE_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ licenseKey: license.key }),
+      body: JSON.stringify({ 
+        licenseKey: license.key,
+        deviceId: deviceId
+      }),
     });
 
     if (!response.ok) return; // Network issue — keep existing status
