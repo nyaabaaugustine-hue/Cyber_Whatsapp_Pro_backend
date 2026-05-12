@@ -219,7 +219,7 @@ const HTML = `<!DOCTYPE html>
     try{
       var res=await fetch('/api/admin/generate-key',{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer ${TOKEN}'},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer __ADMIN_TOKEN__'},
         body:JSON.stringify({email:email||null,plan:plan,durationDays:plan==='lifetime'?null:days,quantity:qty})
       });
       var data=await res.json();
@@ -263,7 +263,7 @@ const HTML = `<!DOCTYPE html>
     var tbody=document.getElementById('keys-tbody');
     tbody.innerHTML='<tr><td colspan="7" class="empty"><span class="spinner"></span> Loading…</td></tr>';
     try{
-      var res=await fetch('/api/admin/keys',{headers:{'Authorization':'Bearer ${TOKEN}'}});
+      var res=await fetch('/api/admin/keys',{headers:{'Authorization':'Bearer __ADMIN_TOKEN__'}});
       var data=await res.json();
       if(!res.ok)throw new Error(data.error||'Failed');
       allKeys=data.licenses;
@@ -314,7 +314,7 @@ const HTML = `<!DOCTYPE html>
     try{
       var res=await fetch('/api/admin/keys',{
         method:'PATCH',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer ${TOKEN}'},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer __ADMIN_TOKEN__'},
         body:JSON.stringify({licenseKey:licenseKey,active:active})
       });
       var data=await res.json();
@@ -326,7 +326,7 @@ const HTML = `<!DOCTYPE html>
 
   async function loadStats(){
     try{
-      var res=await fetch('/api/admin/keys',{headers:{'Authorization':'Bearer ${TOKEN}'}});
+      var res=await fetch('/api/admin/keys',{headers:{'Authorization':'Bearer __ADMIN_TOKEN__'}});
       var data=await res.json();
       if(!res.ok)throw new Error(data.error);
       var keys=data.licenses;
@@ -348,7 +348,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   // Ping on load
-  fetch('/api/admin/keys',{headers:{'Authorization':'Bearer ${TOKEN}'}}).then(function(r){
+  fetch('/api/admin/keys',{headers:{'Authorization':'Bearer __ADMIN_TOKEN__'}}).then(function(r){
     document.getElementById('dot').style.background=r.ok?'#22c55e':'#ef4444';
     document.getElementById('conn-label').textContent=r.ok?'Connected':'Auth failed';
   }).catch(function(){
@@ -366,9 +366,10 @@ export async function GET(request) {
   //   return new NextResponse("Unauthorized", { status: 401 });
   // }
 
-  const html = HTML.replaceAll("${TOKEN}", TOKEN || "");
+  const html = HTML.replaceAll("__ADMIN_TOKEN__", TOKEN || "");
   return new NextResponse(html, {
     status: 200,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
+

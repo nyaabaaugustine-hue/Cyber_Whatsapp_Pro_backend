@@ -15,3 +15,7 @@ export function generateLicenseKey() {
 export function hashKey(key) {
   return crypto.createHash('sha256').update(key).digest('hex')
 }
+
+export function isValidKeyFormat(key) {
+  return /^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(key)
+}
