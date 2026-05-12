@@ -1,0 +1,27 @@
+// Prisma Schema for Cyber WhatsApp Pro License System
+// Database: Neon PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model License {
+  id          String    @id @default(cuid())
+  email       String?
+  license_key String    @unique
+  plan        String    @default("premium") // "premium" | "pro" | "lifetime"
+  active      Boolean   @default(true)
+  expiry_date DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+  activated_at DateTime?
+  device_id   String?   // optional device binding
+
+  @@map("licenses")
+}
