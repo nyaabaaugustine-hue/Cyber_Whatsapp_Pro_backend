@@ -131,7 +131,7 @@ curl -X POST https://your-project.vercel.app/api/admin/generate-key \
 
 # Generate a lifetime key
 curl -X POST https://cyber-whatsapp-pro-backend.vercel.app/api/admin/generate-key \
-  -H "e33aa048284ce35e8898740078a92e1815dc9237a15d6fc6b8f58af4668070fd" \
+  -H "Authorization: Bearer e33aa048284ce35e8898740078a92e1815dc9237a15d6fc6b8f58af4668070fd" \
   -H "Content-Type: application/json" \
   -d '{"plan": "lifetime", "durationDays": null}'
 
