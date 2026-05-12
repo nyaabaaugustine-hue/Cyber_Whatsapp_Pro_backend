@@ -5,15 +5,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 function isAuthorized(request) {
   const token = request.headers.get("Authorization")?.replace("Bearer ", "");
   return token === process.env.ADMIN_SECRET_TOKEN;
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
 // GET — List all keys (with optional filters)
 export async function GET(request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: CORS });
   }
 
   const { searchParams } = new URL(request.url);
@@ -40,20 +50,20 @@ export async function GET(request) {
     },
   });
 
-  return NextResponse.json({ total: licenses.length, licenses });
+  return NextResponse.json({ total: licenses.length, licenses }, { headers: CORS });
 }
 
 // PATCH — Toggle active status or update expiry
 export async function PATCH(request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: CORS });
   }
 
   try {
     const { licenseKey, active, expiryDate } = await request.json();
 
     if (!licenseKey) {
-      return NextResponse.json({ error: "licenseKey required." }, { status: 400 });
+      return NextResponse.json({ error: "licenseKey required." }, { status: 400, headers: CORS });
     }
 
     const data = {};
@@ -66,12 +76,12 @@ export async function PATCH(request) {
       data,
     });
 
-    return NextResponse.json({ success: true, license: updated });
+    return NextResponse.json({ success: true, license: updated }, { headers: CORS });
   } catch (err) {
     if (err.code === "P2025") {
-      return NextResponse.json({ error: "License key not found." }, { status: 404 });
+      return NextResponse.json({ error: "License key not found." }, { status: 404, headers: CORS });
     }
     console.error("[admin/keys PATCH] Error:", err);
-    return NextResponse.json({ error: "Server error." }, { status: 500 });
+    return NextResponse.json({ error: "Server error." }, { status: 500, headers: CORS });
   }
 }
