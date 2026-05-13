@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Cyber WhatsApp Pro",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Premium WhatsApp tools — bulk messaging, auto-reply, and more.",
 
   "permissions": [

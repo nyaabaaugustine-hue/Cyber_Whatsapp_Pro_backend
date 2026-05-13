@@ -1,60 +1,84 @@
 // js/license.js
 // Core license verification logic for Cyber WhatsApp Pro
-// Handles storage, API calls, and premium status checks
 
 const LICENSE_API_URL = "https://cyberwhatsapp-back.vercel.app/api/verify-license";
+const STORAGE_KEY = "cwp_license";
+const CHECK_ALARM = "cwp_license_recheck";
 
-// Keys used in chrome.storage.local
-const STORAGE_KEY  = "cwp_license";
-const CHECK_ALARM  = "cwp_license_recheck";  
+// ── Hardcoded owner keys — bypass server entirely ─────────────
+const OWNER_KEYS = new Set([
+  "5U6DE-SKO94-9127C-JRNBY",
+  "FCUCS-6VM6S-UHD3B-EP7SB",
+]);
 
-// ── Public API ───────────────────────────────────────────────
-
-/**
- * Generates or retrieves a unique device ID for this installation.
- */
+// ── Helpers ───────────────────────────────────────────────────
 async function getDeviceId() {
   const result = await chrome.storage.local.get("cwp_device_id");
   if (result.cwp_device_id) return result.cwp_device_id;
-
   const newId = crypto.randomUUID();
-  await chrome.storage.local.set({ "cwp_device_id": newId });
+  await chrome.storage.local.set({ cwp_device_id: newId });
   return newId;
 }
 
-/**
- * Verify a license key against the backend API.
- * Saves result to chrome.storage.local on success.
- * @returns {{ success: boolean, plan?: string, expiry?: string, error?: string }}
- */
+async function scheduleRecheck() {
+  chrome.alarms.clear(CHECK_ALARM, () => {
+    chrome.alarms.create(CHECK_ALARM, { periodInMinutes: 360 });
+  });
+}
+
+// ── Public API ────────────────────────────────────────────────
 export async function activateLicense(licenseKey) {
   if (!licenseKey || licenseKey.trim().length < 10) {
     return { success: false, error: "Please enter a valid activation key." };
   }
 
+  const key = licenseKey.trim().toUpperCase();
+
+  // Owner/test keys — activate instantly without hitting the server
+  if (OWNER_KEYS.has(key)) {
+    await chrome.storage.local.set({
+      [STORAGE_KEY]: {
+        key,
+        plan:     "lifetime",
+        expiry:   null,
+        lifetime: true,
+        verified: Date.now(),
+        premium:  true,
+      },
+    });
+    await scheduleRecheck();
+    return { success: true, plan: "lifetime", expiry: null, lifetime: true };
+  }
+
+  // Normal keys — verify against server
   const deviceId = await getDeviceId();
 
   try {
-    const response = await fetch(LICENSE_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        licenseKey: licenseKey.trim().toUpperCase(),
-        deviceId: deviceId
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    let response;
+    try {
+      response = await fetch(LICENSE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ licenseKey: key, deviceId }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
-      return { success: false, error: `Server Error (${response.status}). Please check backend deployment logs.` };
+      return { success: false, error: `Server error (${response.status}). Please try again.` };
     }
 
     const data = await response.json();
 
     if (data.valid) {
-      // Persist license locally
       await chrome.storage.local.set({
         [STORAGE_KEY]: {
-          key:      licenseKey.trim().toUpperCase(),
+          key,
           plan:     data.plan,
           expiry:   data.expiry,
           lifetime: data.lifetime,
@@ -62,62 +86,47 @@ export async function activateLicense(licenseKey) {
           premium:  true,
         },
       });
-
-      // Schedule periodic re-checks
       await scheduleRecheck();
-
       return { success: true, plan: data.plan, expiry: data.expiry, lifetime: data.lifetime };
     } else {
       return { success: false, error: data.error || "Invalid or expired key." };
     }
   } catch (err) {
-    console.error("[CWP License] Network error:", err);
-    return { success: false, error: "❌ Server unreachable. Check your internet or try again." };
+    if (err.name === "AbortError") {
+      return { success: false, error: "Request timed out. Please try again." };
+    }
+    return { success: false, error: "Server unreachable. Check your internet." };
   }
 }
 
-/**
- * Returns the stored license object, or null if not activated.
- */
 export async function getLicense() {
   const result = await chrome.storage.local.get(STORAGE_KEY);
   return result[STORAGE_KEY] || null;
 }
 
-/**
- * Returns true only if a valid, non-expired premium license is stored.
- */
 export async function isPremium() {
   const license = await getLicense();
   if (!license || !license.premium) return false;
-
-  // Check local expiry (server re-validates periodically)
   if (!license.lifetime && license.expiry) {
-    const expiryDate = new Date(license.expiry);
-    if (expiryDate < new Date()) {
+    if (new Date(license.expiry) < new Date()) {
       await revokeLicense();
       return false;
     }
   }
-
   return true;
 }
 
-/**
- * Clears license from local storage (logout / deactivate).
- */
 export async function revokeLicense() {
   await chrome.storage.local.remove(STORAGE_KEY);
-  await chrome.alarms.clear(CHECK_ALARM);
+  chrome.alarms.clear(CHECK_ALARM);
 }
 
-/**
- * Re-verifies the stored key against the server.
- * Called by background service worker alarm.
- */
 export async function recheckLicense() {
   const license = await getLicense();
-  if (!license?.key) return; // Nothing to recheck
+  if (!license?.key) return;
+
+  // Never recheck owner keys against server
+  if (OWNER_KEYS.has(license.key)) return;
 
   const deviceId = await getDeviceId();
 
@@ -125,20 +134,16 @@ export async function recheckLicense() {
     const response = await fetch(LICENSE_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        licenseKey: license.key,
-        deviceId: deviceId
-      }),
+      body: JSON.stringify({ licenseKey: license.key, deviceId }),
     });
 
-    if (!response.ok) return; // Network issue — keep existing status
+    if (!response.ok) return;
 
     const data = await response.json();
 
     if (!data.valid) {
-      await revokeLicense(); // Server says invalid — revoke locally
+      await revokeLicense();
     } else {
-      // Refresh stored data
       await chrome.storage.local.set({
         [STORAGE_KEY]: {
           ...license,
@@ -150,14 +155,7 @@ export async function recheckLicense() {
         },
       });
     }
-  } catch (err) {
-    // Silently fail — keep existing premium status if server unreachable
-    console.warn("[CWP License] Background recheck failed (Network/Server Error):", err);
+  } catch {
+    // Silently fail — keep premium if server unreachable
   }
-}
-
-// ── Internal helpers ─────────────────────────────────────────
-
-async function scheduleRecheck() {
-  await chrome.alarms.create(CHECK_ALARM, { periodInMinutes: 360 });
 }
