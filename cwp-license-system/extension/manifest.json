@@ -1,50 +1,30 @@
 {
   "manifest_version": 3,
   "name": "Cyber WhatsApp Pro",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Premium WhatsApp tools — bulk messaging, auto-reply, and more.",
-
-  "permissions": [
-    "storage",
-    "alarms",
-    "activeTab"
-  ],
-
+  "permissions": ["storage", "alarms", "activeTab"],
   "host_permissions": [
     "https://web.whatsapp.com/*",
     "https://cyberwhatsapp-back.vercel.app/*"
   ],
-
   "background": {
     "service_worker": "js/background.js",
     "type": "module"
   },
-
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16":  "logo/pro-small.png",
-      "32":  "logo/pro-medium.png",
       "48":  "logo/pro-medium.png",
       "128": "logo/pro-large.png"
     }
   },
-
-  "content_scripts": [
-    {
-      "matches": ["https://web.whatsapp.com/*"],
-      "js": ["js/proinjt.js"],
-      "run_at": "document_idle"
-    }
-  ],
-
   "icons": {
     "16":  "logo/pro-small.png",
-    "32":  "logo/pro-medium.png",
     "48":  "logo/pro-medium.png",
     "128": "logo/pro-large.png"
   },
-
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
